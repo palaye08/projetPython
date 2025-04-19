@@ -1,4 +1,4 @@
-from validator import Validator
+from validation.validator import Validator
 
 class Service:
     def __init__(self, lignes_valides=None, lignes_invalides=None):

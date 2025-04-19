@@ -2,7 +2,7 @@
 import pandas as pd
 import re
 from datetime import datetime
-from etudiant import Etudiant
+from entite.etudiant import Etudiant
 
 class GestionEtudiants:
     def __init__(self):

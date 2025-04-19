@@ -3,7 +3,7 @@ import pandas as pd
 import json
 import csv
 import os
-from etudiant import Etudiant
+from entite.etudiant import Etudiant
 
 class ExportImport:
     def __init__(self, gestion_etudiants):

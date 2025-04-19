@@ -1,16 +1,16 @@
 # main.py
 import pandas as pd
-from validator import Validator
+from validation.validator import Validator
 from service import Service
 from helper import Helper
-from db_connexion import DbConnexion
-from redis_connexion import RedisConnexion
+from connexion.db_connexion import DbConnexion
+from connexion.redis_connexion import RedisConnexion
 from gestion_etudiants import GestionEtudiants
-from authentification import Authentification
+from auth.authentification import Authentification
 from cache_redis import CacheRedis
 from export_import import ExportImport
 from rapport_pdf import RapportPDF
-from etudiant import Etudiant
+from entite.etudiant import Etudiant
 
 
 class Application:
@@ -505,7 +505,7 @@ if __name__ == "__main__":
 
     # Test de connexion Redis
     print("\nTest de connexion à Redis...")
-    from redis_connexion import RedisConnexion
+    from connexion.redis_connexion import RedisConnexion
     
     # Pour une connexion locale
     redis_conn = RedisConnexion(host="localhost", port=6379, db=0)
