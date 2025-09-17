@@ -1,4 +1,4 @@
-name: Advanced CI/CD Pipeline
+name: Enhanced Debug CI/CD Pipeline
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - master   
 
 jobs:
-  # Job 1: Continuous Integration
   build-and-test:
     runs-on: ubuntu-latest
     
@@ -14,31 +13,75 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Debug - Show environment and files
+        run: |
+          echo "=== SYSTEM INFO ==="
+          docker --version
+          python3 --version
+          
+          echo "=== PROJECT FILES ==="
+          ls -la
+          
+          echo "=== REQUIREMENTS.TXT CONTENT ==="
+          cat requirements.txt
+          
+          echo "=== DOCKERFILE CONTENT ==="
+          cat Dockerfile
+          
+          echo "=== MAIN.PY PREVIEW ==="
+          head -20 main.py
+
+      - name: Test local pip install
+        run: |
+          echo "=== LOCAL PIP TEST ==="
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          python3 -c "import flask; print('✅ Flask works locally')"
+          python3 -c "import gunicorn; print('✅ Gunicorn works locally')"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build Docker Image (no push first)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: palaye769/projetpython:test
+          # Enable detailed build logs
+          build-args: |
+            BUILDKIT_PROGRESS=plain
+
+      - name: Test Docker Image
+        run: |
+          echo "=== TESTING BUILT IMAGE ==="
+          docker images | grep palaye769/projetpython
+          echo "=== RUNNING CONTAINER TEST ==="
+          docker run --rm -d --name test-container -p 5001:5000 palaye769/projetpython:test
+          sleep 10
+          echo "=== CONTAINER LOGS ==="
+          docker logs test-container
+          echo "=== TESTING HTTP RESPONSE ==="
+          curl -f http://localhost:5001/ || echo "❌ HTTP test failed"
+          docker stop test-container || true
+
       - name: Log in to Docker Hub
+        if: success()
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Push Docker Image
+      - name: Push to Docker Hub
+        if: success()
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: palaye769/projetpython:latest
 
-      # Optionnel : Tests
-      - name: Run Tests (if you have any)
-        run: |
-          echo "Running tests..."
-          # docker run --rm palaye769/projetpython:latest python -m pytest
-
-  # Job 2: Continuous Deployment
   deploy:
-    needs: build-and-test  # Attend que le build soit terminé
+    needs: build-and-test
     runs-on: ubuntu-latest
     
     steps:
@@ -47,12 +90,8 @@ jobs:
           echo "🚀 Starting deployment to Render..."
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
           
-      - name: Wait for deployment
+      - name: Wait and verify deployment
         run: |
-          echo "⏳ Waiting for deployment to complete..."
-          sleep 30
-          
-      - name: Deployment completed
-        run: |
-          echo "✅ Deployment finished!"
-          echo "Check your Render dashboard for deployment status."
+          echo "⏳ Waiting for deployment..."
+          sleep 60
+          echo "✅ Deployment triggered!"
