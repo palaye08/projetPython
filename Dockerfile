@@ -1,14 +1,30 @@
-# Utiliser une image Python officielle
-FROM python:3.10-slim
+# Use Python 3.9 slim image
+FROM python:3.9-slim
 
-# Définir le répertoire de travail
+# Set working directory
 WORKDIR /app
 
-# Copier les fichiers du projet dans le conteneur
-COPY . /app
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Installer les dépendances si requirements.txt existe
-RUN pip install --no-cache-dir -r requirements.txt || true
+# Copy requirements first (for better Docker caching)
+COPY requirements.txt .
 
-# Commande de lancement (à adapter selon ton projet)
-CMD ["python", "main.py"]
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application
+COPY . .
+
+# Create a non-root user
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+
+# Expose port
+EXPOSE $PORT
+
+# Use Gunicorn for production
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 main:app
